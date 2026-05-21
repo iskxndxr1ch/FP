@@ -1,4 +1,3 @@
-"use strict";
 const NICE_GIF_URL = "https://media.giphy.com/media/yJFeycRK2DB4c/giphy.gif";
 const SIX_SEVEN_GIF_URL = "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExMng0eDVqdWd4M2xhZWlrNDVvdTlkYWtrdTlsaTVoMW8xNGNwemZoOCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/08uBcURaMq6vA93TGc/giphy.gif";
 // Чистая функция сложения
@@ -379,3 +378,4 @@ buttons.forEach((button) => {
     });
 });
 render(calculatorState, false);
+export {};

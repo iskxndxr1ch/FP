@@ -1,3 +1,5 @@
+export {};
+
 type BinaryOperation = (firstNumber: number, secondNumber: number) => number;
 type UnaryOperation = (number: number) => number;
 
