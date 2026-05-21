@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ЛР4 — Калькулятор на TypeScript</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="page">
+    <div class="fireworks-layer hidden" id="fireworksLayer">
+      <img
+        src="https://media.giphy.com/media/26tOZ42Mg6pbTUPHW/giphy.gif"
+        alt="fireworks"
+      />
+    </div>
+
+    <div class="calculator" id="calculator">
+      <h1>Калькулятор</h1>
+
+      <div class="display" id="displayContainer">
+        <div class="expression" id="expressionDisplay"></div>
+        <div class="current-value" id="display">0</div>
+      </div>
+
+      <div class="buttons">
+        <button class="service" data-action="clear">C</button>
+        <button class="operation" data-operation="sqrt">√</button>
+        <button class="operation" data-operation="power">^</button>
+        <button class="operation" data-operation="divide">÷</button>
+
+        <button data-number="7">7</button>
+        <button data-number="8">8</button>
+        <button data-number="9">9</button>
+        <button class="operation" data-operation="multiply">×</button>
+
+        <button data-number="4">4</button>
+        <button data-number="5">5</button>
+        <button data-number="6">6</button>
+        <button class="operation" data-operation="subtract">−</button>
+
+        <button data-number="1">1</button>
+        <button data-number="2">2</button>
+        <button data-number="3">3</button>
+        <button class="operation" data-operation="add">+</button>
+
+        <button class="zero" data-number="0">0</button>
+        <button data-action="dot">.</button>
+        <button class="equals" data-action="calculate">=</button>
+      </div>
+    </div>
+
+    <img
+      class="side-meme hidden"
+      id="sideMeme"
+      src=""
+      alt="meme"
+    />
+  </main>
+
+  <div class="prank-screen hidden" id="prankScreen">
+    <div class="prank-content">
+      <h2>404</h2>
+      <p>NOT FOUND</p>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
