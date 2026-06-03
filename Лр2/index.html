@@ -1,286 +1,1057 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ЛР 2 — Список задач</title>
+  <title>Dwight's Desk Tasks</title>
   <style>
     * {
       box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: Arial, sans-serif;
+    }
+
+    :root {
+      --ink: #1e251d;
+      --task-text-fade-ms: 240ms;
+      --hotspot-x: 64.4%;
+      --hotspot-y: 68.9%;
+      --hotspot-w: 5.2%;
+      --hotspot-h: 9.6%;
+      --hotspot-rotation: 3deg;
     }
 
     body {
+      margin: 0;
       min-height: 100vh;
-      background: #f2f4f8;
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-      padding: 40px 15px;
+      overflow: hidden;
+      background: #17130f;
+      color: var(--ink);
+      font-family: "Caveat Regular", "Caveat", cursive;
+      user-select: none;
     }
 
-    .app {
+    .scene {
+      position: fixed;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      background: #17130f;
+    }
+
+    .stage {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    video,
+    .reverse-canvas {
+      position: absolute;
+      inset: 0;
       width: 100%;
-      max-width: 600px;
-      background: #ffffff;
-      border-radius: 12px;
-      padding: 25px;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      height: 100%;
+      display: block;
     }
 
-    h1 {
-      text-align: center;
-      margin-bottom: 20px;
-      color: #222222;
+    video {
+      object-fit: cover;
+      background: #17130f;
+      z-index: 0;
     }
 
-    .form {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 20px;
+    .reverse-canvas {
+      display: none;
+      z-index: 1;
+      pointer-events: none;
     }
 
-    .form input {
-      flex: 1;
-      padding: 12px;
-      border: 1px solid #cccccc;
-      border-radius: 8px;
-      font-size: 16px;
+    .hotspot,
+    .note {
+      position: absolute;
+      z-index: 2;
+      transform-origin: center;
     }
 
-    .form button,
-    .filters button,
-    .delete-btn {
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 14px;
-      transition: 0.2s;
+    .hotspot {
+      left: var(--hotspot-x);
+      top: var(--hotspot-y);
+      width: var(--hotspot-w);
+      height: var(--hotspot-h);
+      transform: translate(-50%, -50%) rotate(var(--hotspot-rotation));
+      border: 0;
+      padding: 0;
+      background: transparent;
+      cursor: zoom-in;
+      opacity: 0;
     }
 
-    .form button {
-      padding: 12px 18px;
-      background: #2563eb;
-      color: white;
+    .note {
+      overflow: hidden;
+      background: transparent;
+      cursor: text;
+      pointer-events: none;
     }
 
-    .form button:hover {
-      background: #1d4ed8;
+    .note-desk {
+      left: 63.9%;
+      top: 68.9%;
+      width: 4.5%;
+      height: 9.6%;
+      padding: 2px 3px;
+      transform: translate(-50%, -50%) rotate(3deg);
     }
 
-    .filters {
-      display: flex;
-      justify-content: center;
-      gap: 10px;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
+    .note-close {
+      left: 55.2%;
+      top: 47.8%;
+      width: 18.6%;
+      height: 35.5%;
+      padding: clamp(12px, 2vw, 24px);
+      transform: translate(-50%, -50%) rotate(3deg);
     }
 
-    .filters button {
-      padding: 9px 14px;
-      background: #e5e7eb;
-      color: #222222;
+    .note.open {
+      pointer-events: auto;
     }
 
-    .filters button.active {
-      background: #2563eb;
-      color: white;
-    }
-
-    .task-list {
-      list-style: none;
+    .note-content {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: clamp(6px, 1vh, 12px);
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      transition: opacity var(--task-text-fade-ms) ease-in-out;
     }
 
-    .task-item {
+    .note.visible .note-content {
+      opacity: 1;
+    }
+
+    .tasks {
+      position: relative;
+      z-index: 1;
+      flex: 1;
+      min-height: 0;
+      margin: 0;
+      padding: 4% 0 0;
+      list-style: none;
+      overflow: hidden;
+    }
+
+    .task {
+      position: relative;
       display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 10px;
-      padding: 12px;
-      background: #f9fafb;
-      border: 1px solid #e5e7eb;
-      border-radius: 8px;
-    }
-
-    .task-info {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      word-break: break-word;
-    }
-
-    .task-info input {
-      width: 18px;
-      height: 18px;
+      align-items: flex-start;
+      gap: 6px;
+      padding: 0 4px;
+      color: var(--ink);
+      font-size: clamp(14px, 2.1vw, 28px);
+      line-height: 1.35;
+      overflow-wrap: anywhere;
       cursor: pointer;
     }
 
-    .completed {
+    .note-desk .tasks {
+      padding-top: 4%;
+      padding-right: 6%;
+      overflow: hidden;
+    }
+
+    .note-desk .task {
+      padding: 0 1px;
+      gap: 2px;
+      font-size: clamp(4px, 0.48vw, 7px);
+      line-height: 1.08;
+      max-width: 100%;
+      overflow: hidden;
+    }
+
+    .task-box {
+      position: relative;
+      flex: 0 0 auto;
+      width: 0.82em;
+      height: 0.82em;
+      margin-top: 0.22em;
+      border: 1.5px solid currentColor;
+      color: inherit;
+    }
+
+    .note-desk .task-box {
+      border: 0;
+    }
+
+    .note-desk .task-box::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 300%;
+      height: 300%;
+      border: 1px solid currentColor;
+      transform: scale(0.333);
+      transform-origin: left top;
+    }
+
+    .task.done .task-box::after {
+      content: "";
+      position: absolute;
+      left: 18%;
+      top: -6%;
+      width: 48%;
+      height: 78%;
+      border-right: 1.8px solid currentColor;
+      border-bottom: 1.8px solid currentColor;
+      transform: rotate(38deg);
+      color: inherit;
+    }
+
+    .note-desk .task.done .task-box::after {
+      left: 20%;
+      top: -2%;
+      width: 150%;
+      height: 220%;
+      border-right-width: 1px;
+      border-bottom-width: 1px;
+      transform: scale(0.333) rotate(38deg);
+      transform-origin: left top;
+    }
+
+    .task-text {
+      min-width: 0;
+      max-width: 100%;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+      white-space: normal;
+    }
+
+    .note-desk .task-text {
+      flex: 1 1 auto;
+      max-width: calc(100% - 1.1em);
+      overflow: hidden;
+    }
+
+    .task.done .task-text {
       text-decoration: line-through;
-      color: #777777;
+      text-decoration-color: currentColor;
+      text-decoration-thickness: 1.5px;
+      text-decoration-skip-ink: none;
     }
 
-    .delete-btn {
-      padding: 8px 12px;
-      background: #dc2626;
-      color: white;
+    .note-desk .task.done .task-text {
+      text-decoration-thickness: 0.15px;
     }
 
-    .delete-btn:hover {
-      background: #b91c1c;
+    .task-input {
+      display: none;
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      flex: 0 0 auto;
+      border: 0;
+      padding: 0 4px;
+      outline: 0;
+      background: transparent;
+      color: var(--ink);
+      font: inherit;
+      font-size: clamp(15px, 2vw, 26px);
+      caret-color: var(--ink);
+      user-select: text;
     }
 
-    .empty-message {
+    .note-close.open .task-input {
+      display: block;
+    }
+
+    .is-desk .hotspot {
+      pointer-events: auto;
+      cursor: zoom-in;
+    }
+
+    .is-note .hotspot {
+      pointer-events: auto;
+      cursor: text;
+    }
+
+    .is-zooming .hotspot,
+    .is-editing .hotspot {
+      pointer-events: none;
+    }
+
+    @media (max-width: 720px) {
+      .note-close {
+        padding: 14px;
+      }
+
+      .note-close .task {
+        font-size: clamp(13px, 4.3vw, 20px);
+      }
+
+      .task-input {
+        font-size: clamp(14px, 4.2vw, 19px);
+      }
+    }
+
+    .subtitle {
+      position: fixed;
+      left: 50%;
+      bottom: 7vh;
+      z-index: 5;
+      max-width: min(86vw, 980px);
+      padding: 8px 18px 10px;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.78);
+      color: #f7f1d4;
+      font-family: "Courier New", monospace;
+      font-size: clamp(18px, 2.4vw, 34px);
+      line-height: 1.15;
       text-align: center;
-      color: #777777;
-      margin-top: 15px;
+      text-shadow:
+        2px 2px 0 #000,
+        -1px 0 0 rgba(255, 255, 255, 0.35);
+      letter-spacing: 0.02em;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 180ms ease;
+    }
+
+    .subtitle.visible {
+      opacity: 1;
     }
   </style>
 </head>
 <body>
-  <div class="app">
-    <h1>Список задач</h1>
+  <main class="scene is-desk" aria-label="Dwight's desk task list">
+    <div class="stage" id="stage">
+      <video id="deskVideo" src="main.mp4" preload="auto" muted playsinline></video>
+      <canvas class="reverse-canvas" id="reverseCanvas"></canvas>
 
-    <div class="form">
-      <input type="text" id="taskInput" placeholder="Введите новую задачу" />
-      <button id="addTaskButton">Добавить</button>
+      <button class="hotspot" id="hotspot" aria-label="Open sticky note"></button>
+
+      <section class="note note-desk" id="noteDesk" aria-label="Desk sticky note tasks">
+        <div class="note-content" id="noteContentDesk">
+          <ul class="tasks" id="tasksDesk"></ul>
+        </div>
+      </section>
+
+      <section class="note note-close" id="noteClose" aria-label="Sticky note tasks">
+        <div class="note-content" id="noteContentClose">
+          <ul class="tasks" id="tasksClose"></ul>
+          <input class="task-input" id="taskInput" autocomplete="off" spellcheck="false" />
+        </div>
+      </section>
     </div>
+  </main>
 
-    <div class="filters">
-      <button class="active" data-filter="all">Все</button>
-      <button data-filter="active">Невыполненные</button>
-      <button data-filter="completed">Выполненные</button>
-    </div>
+  <div class="subtitle" id="subtitle" aria-live="polite"></div>
 
-    <ul class="task-list" id="taskList"></ul>
-    <p class="empty-message" id="emptyMessage">Список задач пуст</p>
-  </div>
+  <audio id="officeAmbience" src="Office_ambience.flac" preload="auto" loop></audio>
+  <audio id="taskSound" src="task.wav" preload="auto"></audio>
+  <audio id="doneSound" src="done.wav" preload="auto"></audio>
+  <audio id="eraseSound" src="erase.mp3" preload="auto"></audio>
 
   <script>
-    let tasks = [];
-    let currentFilter = "all";
+    const scene = document.querySelector(".scene");
+    const stage = document.querySelector("#stage");
+    const video = document.querySelector("#deskVideo");
+    const reverseCanvas = document.querySelector("#reverseCanvas");
+    const reverseContext = reverseCanvas.getContext("2d");
+    const hotspot = document.querySelector("#hotspot");
 
+    const noteDesk = document.querySelector("#noteDesk");
+    const noteClose = document.querySelector("#noteClose");
+    const noteContentDesk = document.querySelector("#noteContentDesk");
+    const noteContentClose = document.querySelector("#noteContentClose");
+    const tasksDeskElement = document.querySelector("#tasksDesk");
+    const tasksCloseElement = document.querySelector("#tasksClose");
     const taskInput = document.querySelector("#taskInput");
-    const addTaskButton = document.querySelector("#addTaskButton");
-    const taskList = document.querySelector("#taskList");
-    const emptyMessage = document.querySelector("#emptyMessage");
-    const filterButtons = document.querySelectorAll(".filters button");
+    const subtitle = document.querySelector("#subtitle");
 
-    // Чистая функция для создания новой задачи
-    const createTask = (text) => ({
-      id: Date.now(),
-      text,
-      completed: false
+    const officeAmbience = document.querySelector("#officeAmbience");
+    const taskSound = document.querySelector("#taskSound");
+    const doneSound = document.querySelector("#doneSound");
+    const eraseSound = document.querySelector("#eraseSound");
+
+    const storageKey = "dwight-desk-tasks";
+
+    const noteFrames = {
+      desk: { x: 64.4, y: 68.9, w: 5.2, h: 9.6, rotation: 3 },
+      close: { x: 55.2, y: 47.8, w: 18.6, h: 35.5, rotation: 3 }
+    };
+
+    let tasks = loadTasks();
+    let mode = "desk";
+    let reverseFrameId = null;
+    let captureFrameId = null;
+    let captureRafId = null;
+    let isZooming = false;
+    let capturedFrames = [];
+
+    let zoomInCloseTextFadeInTimer = null;
+    let deskTextFadeOutTimer = null;
+    let closeTextFadeOutTimer = null;
+    let subtitleTimer = null;
+
+    const captureCanvas = document.createElement("canvas");
+    const captureContext = captureCanvas.getContext("2d");
+
+    const maxFrameWidth = 1280;
+    const maxCapturedFrames = 45;
+
+
+    const taskTextFadeDurationMs = 240;
+    const zoomInDeskTextFadeOutDelayMs = 10;
+    const zoomInCloseTextFadeInLeadMs = 380;
+    const zoomOutCloseTextFadeOutDelayMs = 140;
+    const zoomOutDeskTextFadeInLeadMs = 300;
+    const overflowSubtitleText = "Двайт, ты что не видишь — у тебя не помещается!";
+
+    document.documentElement.style.setProperty(
+      "--task-text-fade-ms",
+      `${taskTextFadeDurationMs}ms`
+    );
+
+    const taskSoundLayers = [taskSound, new Audio("task.wav"), new Audio("task.wav")];
+    const doneSoundLayers = [doneSound, new Audio("done.wav"), new Audio("done.wav")];
+    const eraseSoundLayers = [eraseSound, new Audio("erase.mp3"), new Audio("erase.mp3")];
+
+    taskSoundLayers.forEach((sound) => {
+      sound.preload = "auto";
+      sound.volume = 1;
     });
 
-    // Чистая функция для добавления задачи без изменения исходного массива
-    const addTask = (tasks, text) => [...tasks, createTask(text)];
+    doneSoundLayers.forEach((sound) => {
+      sound.preload = "auto";
+      sound.volume = 1;
+    });
 
-    // Чистая функция для изменения статуса задачи
-    const toggleTaskStatus = (tasks, taskId) =>
-      tasks.map(task =>
-        task.id === taskId
-          ? { ...task, completed: !task.completed }
-          : task
-      );
+    eraseSoundLayers.forEach((sound) => {
+      sound.preload = "auto";
+      sound.volume = 1;
+    });
 
-    // Чистая функция для удаления задачи
-    const deleteTask = (tasks, taskId) =>
-      tasks.filter(task => task.id !== taskId);
+    function loadTasks() {
+      try {
+        return JSON.parse(localStorage.getItem(storageKey)) || [];
+      } catch {
+        return [];
+      }
+    }
 
-    // Чистая функция для фильтрации задач по статусу
-    const filterTasks = (tasks, filter) => {
-      if (filter === "completed") {
-        return tasks.filter(task => task.completed);
+    function saveTasks() {
+      localStorage.setItem(storageKey, JSON.stringify(tasks));
+    }
+
+    function applyHotspotFrame(frame) {
+      stage.style.setProperty("--hotspot-x", `${frame.x}%`);
+      stage.style.setProperty("--hotspot-y", `${frame.y}%`);
+      stage.style.setProperty("--hotspot-w", `${frame.w}%`);
+      stage.style.setProperty("--hotspot-h", `${frame.h}%`);
+      stage.style.setProperty("--hotspot-rotation", `${frame.rotation}deg`);
+    }
+
+    function sizeCanvas(canvas) {
+      const rect = stage.getBoundingClientRect();
+      const scale = Math.min(1, maxFrameWidth / rect.width);
+      const width = Math.max(1, Math.round(rect.width * scale));
+      const height = Math.max(1, Math.round(rect.height * scale));
+
+      if (canvas.width !== width || canvas.height !== height) {
+        canvas.width = width;
+        canvas.height = height;
       }
 
-      if (filter === "active") {
-        return tasks.filter(task => !task.completed);
-      }
+      return { width, height };
+    }
 
-      return tasks;
-    };
+    function drawVideoCover(context, source, width, height) {
+      const sourceWidth = source.videoWidth || source.width;
+      const sourceHeight = source.videoHeight || source.height;
 
-    // Функция высшего порядка для обработки списка задач
-    const processTasks = (tasks, callback) => tasks.map(callback);
-
-    const renderTasks = () => {
-      taskList.innerHTML = "";
-
-      const visibleTasks = filterTasks(tasks, currentFilter);
-
-      emptyMessage.style.display = visibleTasks.length === 0 ? "block" : "none";
-
-      processTasks(visibleTasks, task => {
-        const taskItem = document.createElement("li");
-        taskItem.className = "task-item";
-
-        const taskInfo = document.createElement("div");
-        taskInfo.className = "task-info";
-
-        const checkbox = document.createElement("input");
-        checkbox.type = "checkbox";
-        checkbox.checked = task.completed;
-        checkbox.addEventListener("change", () => {
-          tasks = toggleTaskStatus(tasks, task.id);
-          renderTasks();
-        });
-
-        const taskText = document.createElement("span");
-        taskText.textContent = task.text;
-        taskText.className = task.completed ? "completed" : "";
-
-        const deleteButton = document.createElement("button");
-        deleteButton.textContent = "Удалить";
-        deleteButton.className = "delete-btn";
-        deleteButton.addEventListener("click", () => {
-          tasks = deleteTask(tasks, task.id);
-          renderTasks();
-        });
-
-        taskInfo.append(checkbox, taskText);
-        taskItem.append(taskInfo, deleteButton);
-        taskList.append(taskItem);
-
-        return taskItem;
-      });
-    };
-
-    addTaskButton.addEventListener("click", () => {
-      const taskText = taskInput.value.trim();
-
-      if (taskText === "") {
+      if (!sourceWidth || !sourceHeight) {
         return;
       }
 
-      tasks = addTask(tasks, taskText);
-      taskInput.value = "";
+      const scale = Math.max(width / sourceWidth, height / sourceHeight);
+      const cropWidth = width / scale;
+      const cropHeight = height / scale;
+      const cropX = (sourceWidth - cropWidth) / 2;
+      const cropY = (sourceHeight - cropHeight) / 2;
+
+      context.drawImage(source, cropX, cropY, cropWidth, cropHeight, 0, 0, width, height);
+    }
+
+    function captureCurrentFrame() {
+      if (!video.videoWidth || !video.videoHeight) {
+        return;
+      }
+
+      const { width, height } = sizeCanvas(captureCanvas);
+      captureContext.clearRect(0, 0, width, height);
+      drawVideoCover(captureContext, video, width, height);
+
+      const frame = document.createElement("canvas");
+      frame.width = width;
+      frame.height = height;
+      frame.getContext("2d").drawImage(captureCanvas, 0, 0);
+      capturedFrames.push(frame);
+
+      if (capturedFrames.length > maxCapturedFrames) {
+        capturedFrames.shift();
+      }
+    }
+
+    function stopFrameCapture() {
+      if (captureFrameId && video.cancelVideoFrameCallback) {
+        video.cancelVideoFrameCallback(captureFrameId);
+      }
+
+      if (captureRafId) {
+        cancelAnimationFrame(captureRafId);
+      }
+
+      captureFrameId = null;
+      captureRafId = null;
+    }
+
+    function startFrameCapture() {
+      stopFrameCapture();
+      capturedFrames = [];
+      captureCurrentFrame();
+
+      const capture = () => {
+        if (!isZooming || video.paused || video.ended) {
+          return;
+        }
+
+        captureCurrentFrame();
+
+        if (video.requestVideoFrameCallback) {
+          captureFrameId = video.requestVideoFrameCallback(capture);
+        } else {
+          captureRafId = requestAnimationFrame(capture);
+        }
+      };
+
+      if (video.requestVideoFrameCallback) {
+        captureFrameId = video.requestVideoFrameCallback(capture);
+      } else {
+        captureRafId = requestAnimationFrame(capture);
+      }
+    }
+
+    function drawReverseFrame(frame) {
+      const { width, height } = sizeCanvas(reverseCanvas);
+      reverseContext.clearRect(0, 0, width, height);
+      reverseContext.drawImage(frame, 0, 0, width, height);
+    }
+
+    function showLayer(layer) {
+      layer.classList.add("visible");
+    }
+
+    function hideLayer(layer) {
+      layer.classList.remove("visible");
+    }
+
+    function isLayerVisible(layer) {
+      return layer.classList.contains("visible");
+    }
+
+    function showDeskLayer() {
+      showLayer(noteDesk);
+    }
+
+    function hideDeskLayer() {
+      hideLayer(noteDesk);
+    }
+
+    function showCloseLayer() {
+      showLayer(noteClose);
+    }
+
+    function hideCloseLayer() {
+      hideLayer(noteClose);
+    }
+
+    function clearZoomInCloseTextFadeInTimer() {
+      if (zoomInCloseTextFadeInTimer) {
+        clearTimeout(zoomInCloseTextFadeInTimer);
+        zoomInCloseTextFadeInTimer = null;
+      }
+    }
+
+    function clearDeskTextFadeOutTimer() {
+      if (deskTextFadeOutTimer) {
+        clearTimeout(deskTextFadeOutTimer);
+        deskTextFadeOutTimer = null;
+      }
+    }
+
+    function clearCloseTextFadeOutTimer() {
+      if (closeTextFadeOutTimer) {
+        clearTimeout(closeTextFadeOutTimer);
+        closeTextFadeOutTimer = null;
+      }
+    }
+
+    function clearTextTimers() {
+      clearZoomInCloseTextFadeInTimer();
+      clearDeskTextFadeOutTimer();
+      clearCloseTextFadeOutTimer();
+    }
+
+    function afterLayerHidden(layer, content, callback) {
+      if (!isLayerVisible(layer)) {
+        callback();
+        return;
+      }
+
+      let isDone = false;
+
+      const finish = () => {
+        if (isDone) {
+          return;
+        }
+
+        isDone = true;
+        content.removeEventListener("transitionend", onTransitionEnd);
+        callback();
+      };
+
+      const onTransitionEnd = (event) => {
+        if (event.target === content && event.propertyName === "opacity") {
+          finish();
+        }
+      };
+
+      content.addEventListener("transitionend", onTransitionEnd);
+      hideLayer(layer);
+      setTimeout(finish, taskTextFadeDurationMs + 80);
+    }
+
+    function scheduleDeskTextFadeOut(delayMs, callback) {
+      clearDeskTextFadeOutTimer();
+
+      deskTextFadeOutTimer = setTimeout(() => {
+        deskTextFadeOutTimer = null;
+        afterLayerHidden(noteDesk, noteContentDesk, callback);
+      }, Math.max(0, delayMs));
+    }
+
+    function scheduleCloseTextFadeOut(delayMs, callback) {
+      clearCloseTextFadeOutTimer();
+
+      closeTextFadeOutTimer = setTimeout(() => {
+        closeTextFadeOutTimer = null;
+        afterLayerHidden(noteClose, noteContentClose, callback);
+      }, Math.max(0, delayMs));
+    }
+
+    function showReverseCanvas() {
+      reverseCanvas.style.display = "block";
+    }
+
+    function hideReverseCanvas() {
+      reverseCanvas.style.display = "none";
+    }
+
+    function setZooming(value) {
+      isZooming = value;
+      scene.classList.toggle("is-zooming", value);
+    }
+
+    function playSound(soundLayers) {
+      soundLayers.forEach((sound) => {
+        sound.muted = false;
+        sound.currentTime = 0;
+        sound.play().catch(() => {});
+      });
+    }
+
+    function startAmbience() {
+      if (!officeAmbience.paused) {
+        return;
+      }
+
+      officeAmbience.muted = false;
+      officeAmbience.volume = 0.2;
+      officeAmbience.play().catch(() => {});
+    }
+
+    function keepAmbiencePlaying() {
+      startAmbience();
+    }
+
+    function showSubtitle(message) {
+      subtitle.textContent = message;
+      subtitle.classList.add("visible");
+
+      if (subtitleTimer) {
+        clearTimeout(subtitleTimer);
+      }
+
+      subtitleTimer = setTimeout(() => {
+        subtitle.classList.remove("visible");
+        subtitleTimer = null;
+      }, 2800);
+    }
+
+    function listOverflows(element) {
+      return (
+        element.scrollHeight > element.clientHeight + 1 ||
+        element.scrollWidth > element.clientWidth + 1
+      );
+    }
+
+    function tasksFit(candidateTasks) {
+      renderTasksInto(tasksDeskElement, candidateTasks);
+      renderTasksInto(tasksCloseElement, candidateTasks);
+
+      const fit =
+        !listOverflows(tasksDeskElement) &&
+        !listOverflows(tasksCloseElement);
+
       renderTasks();
+      return fit;
+    }
+
+    function renderTasksInto(targetElement, taskList = tasks) {
+      targetElement.innerHTML = "";
+
+      taskList.forEach((task) => {
+        const item = document.createElement("li");
+        item.className = `task${task.done ? " done" : ""}`;
+
+        const checkbox = document.createElement("span");
+        checkbox.className = "task-box";
+        checkbox.setAttribute("aria-hidden", "true");
+
+        const text = document.createElement("span");
+        text.className = "task-text";
+        text.textContent = task.text;
+
+        item.append(checkbox, text);
+
+        item.addEventListener("click", () => {
+          if (task.done) {
+            return;
+          }
+
+          task.done = true;
+          playSound(doneSoundLayers);
+          saveTasks();
+          renderTasks();
+        });
+
+        item.addEventListener("contextmenu", (event) => {
+          event.preventDefault();
+
+          if (!task.done) {
+            return;
+          }
+
+          tasks = tasks.filter((currentTask) => currentTask.id !== task.id);
+          playSound(eraseSoundLayers);
+          saveTasks();
+          renderTasks();
+        });
+
+        targetElement.append(item);
+      });
+    }
+
+    function renderTasks() {
+      renderTasksInto(tasksDeskElement);
+      renderTasksInto(tasksCloseElement);
+    }
+
+    function addTask(text) {
+      const cleanText = text.trim();
+
+      if (!cleanText) {
+        return false;
+      }
+
+      const newTask = {
+        id: crypto.randomUUID(),
+        text: cleanText,
+        done: false
+      };
+
+      if (!tasksFit([...tasks, newTask])) {
+        showSubtitle(overflowSubtitleText);
+        return false;
+      }
+
+      tasks.push(newTask);
+
+      saveTasks();
+      playSound(taskSoundLayers);
+      renderTasks();
+      return true;
+    }
+
+    function setMode(nextMode) {
+      mode = nextMode;
+      scene.classList.toggle("is-desk", mode === "desk");
+      scene.classList.toggle("is-note", mode === "note");
+      applyHotspotFrame(noteFrames[mode === "note" ? "close" : "desk"]);
+    }
+
+    function showDeskState() {
+      setMode("desk");
+      hideCloseLayer();
+      noteClose.classList.remove("open");
+      scene.classList.remove("is-editing");
+      showDeskLayer();
+    }
+
+    function showCloseState() {
+      setMode("note");
+      hideDeskLayer();
+      showCloseLayer();
+    }
+
+    function cancelReverseAnimation() {
+      if (reverseFrameId) {
+        cancelAnimationFrame(reverseFrameId);
+        reverseFrameId = null;
+      }
+    }
+
+    function playForward() {
+      if (isZooming) {
+        return;
+      }
+
+      cancelReverseAnimation();
+      clearTextTimers();
+
+      setZooming(true);
+      hideReverseCanvas();
+      scene.classList.remove("is-editing");
+      noteClose.classList.remove("open");
+
+      setMode("desk");
+      showDeskLayer();
+      hideCloseLayer();
+
+      video.currentTime = 0;
+      video.playbackRate = 1;
+
+      startFrameCapture();
+
+      scheduleDeskTextFadeOut(zoomInDeskTextFadeOutDelayMs, () => {
+        if (!isZooming) {
+          return;
+        }
+
+        hideDeskLayer();
+        setMode("note");
+      });
+
+      const zoomDuration = Number.isFinite(video.duration) ? video.duration * 1000 : 0;
+      const fadeInDelay = Math.max(zoomDuration - zoomInCloseTextFadeInLeadMs, 0);
+
+      zoomInCloseTextFadeInTimer = setTimeout(() => {
+        zoomInCloseTextFadeInTimer = null;
+
+        if (!isZooming) {
+          return;
+        }
+
+        setMode("note");
+        showCloseLayer();
+      }, fadeInDelay);
+
+      video.play().catch(() => {
+        stopFrameCapture();
+        clearTextTimers();
+        setZooming(false);
+        showDeskState();
+      });
+    }
+
+    function finishReverseToDesk() {
+      setZooming(false);
+      video.currentTime = 0;
+      setMode("desk");
+      hideCloseLayer();
+
+      let handoffFinished = false;
+
+      const finishHandoff = () => {
+        if (handoffFinished) {
+          return;
+        }
+
+        handoffFinished = true;
+
+        requestAnimationFrame(() => {
+          hideReverseCanvas();
+
+          requestAnimationFrame(() => {
+            showDeskLayer();
+          });
+        });
+      };
+
+      video.addEventListener("seeked", finishHandoff, { once: true });
+      setTimeout(finishHandoff, 220);
+    }
+
+    function playReverse() {
+      if (isZooming || !video.ended) {
+        return;
+      }
+
+      cancelReverseAnimation();
+      clearTextTimers();
+
+      setZooming(true);
+      scene.classList.remove("is-editing");
+      noteClose.classList.remove("open");
+
+      setMode("note");
+      showCloseLayer();
+      hideDeskLayer();
+      video.pause();
+
+      scheduleCloseTextFadeOut(zoomOutCloseTextFadeOutDelayMs, () => {
+        hideCloseLayer();
+      });
+
+      if (capturedFrames.length < 2) {
+        setTimeout(() => {
+          setMode("desk");
+          showDeskLayer();
+          finishReverseToDesk();
+        }, zoomOutCloseTextFadeOutDelayMs + taskTextFadeDurationMs + 80);
+        return;
+      }
+
+      const startTime = video.duration || video.currentTime || 0;
+      const duration = Math.max(startTime * 1000, 250);
+      const deskTextFadeInStart = Math.max(0, 1 - zoomOutDeskTextFadeInLeadMs / duration);
+
+      let animationStart = null;
+      let hasStartedDeskTextFadeIn = false;
+
+      drawReverseFrame(capturedFrames[capturedFrames.length - 1]);
+      showReverseCanvas();
+
+      function step(timestamp) {
+        if (!animationStart) {
+          animationStart = timestamp;
+        }
+
+        const progress = Math.min((timestamp - animationStart) / duration, 1);
+        const frameIndex = Math.round((capturedFrames.length - 1) * (1 - progress));
+        drawReverseFrame(capturedFrames[frameIndex]);
+
+        if (!hasStartedDeskTextFadeIn && progress >= deskTextFadeInStart) {
+          hasStartedDeskTextFadeIn = true;
+          setMode("desk");
+          showDeskLayer();
+        }
+
+        if (progress < 1) {
+          reverseFrameId = requestAnimationFrame(step);
+          return;
+        }
+
+        reverseFrameId = null;
+        drawReverseFrame(capturedFrames[0]);
+
+        if (!hasStartedDeskTextFadeIn) {
+          setMode("desk");
+          showDeskLayer();
+        }
+
+        finishReverseToDesk();
+      }
+
+      reverseFrameId = requestAnimationFrame(step);
+    }
+
+    function openNoteEditor() {
+      if (mode !== "note" || !video.ended) {
+        return;
+      }
+
+      scene.classList.add("is-editing");
+      noteClose.classList.add("open");
+      taskInput.focus();
+    }
+
+    hotspot.addEventListener("click", () => {
+      if (mode === "desk") {
+        playForward();
+        return;
+      }
+
+      openNoteEditor();
+    });
+
+    officeAmbience.addEventListener("ended", () => {
+      officeAmbience.currentTime = 0;
+      officeAmbience.play().catch(() => {});
+    });
+
+    document.addEventListener("pointerdown", keepAmbiencePlaying);
+    document.addEventListener("keydown", keepAmbiencePlaying);
+
+    video.addEventListener("ended", () => {
+      clearTextTimers();
+      captureCurrentFrame();
+      stopFrameCapture();
+
+      setZooming(false);
+      showCloseState();
+    });
+
+    noteClose.addEventListener("click", openNoteEditor);
+
+    taskInput.addEventListener("click", (event) => {
+      event.stopPropagation();
     });
 
     taskInput.addEventListener("keydown", (event) => {
       if (event.key === "Enter") {
-        addTaskButton.click();
+        if (addTask(taskInput.value)) {
+          taskInput.value = "";
+        }
       }
     });
 
-    filterButtons.forEach(button => {
-      button.addEventListener("click", () => {
-        currentFilter = button.dataset.filter;
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape" || mode !== "note" || isZooming || !video.ended) {
+        return;
+      }
 
-        filterButtons.forEach(item => item.classList.remove("active"));
-        button.classList.add("active");
+      taskInput.blur();
+      playReverse();
+    });
 
-        renderTasks();
-      });
+    document.addEventListener("contextmenu", (event) => {
+      if (!event.target.closest(".task")) {
+        event.preventDefault();
+      }
+    });
+
+    video.addEventListener("loadedmetadata", () => {
+      video.currentTime = 0;
+      showDeskState();
+    });
+
+    window.addEventListener("resize", () => {
+      applyHotspotFrame(noteFrames[mode === "note" ? "close" : "desk"]);
     });
 
     renderTasks();
+    showDeskState();
+    startAmbience();
   </script>
 </body>
 </html>
