@@ -1,381 +1,871 @@
-const NICE_GIF_URL = "https://media.giphy.com/media/yJFeycRK2DB4c/giphy.gif";
-const SIX_SEVEN_GIF_URL = "https://media3.giphy.com/media/v1.Y2lkPTc5MGI3NjExMng0eDVqdWd4M2xhZWlrNDVvdTlkYWtrdTlsaTVoMW8xNGNwemZoOCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/08uBcURaMq6vA93TGc/giphy.gif";
-// Чистая функция сложения
-const add = (firstNumber, secondNumber) => {
-    return firstNumber + secondNumber;
+const STORAGE_KEY = "apple-calculator-plus-subscription";
+const CREDIT_COST = 1;
+const WEEK_IN_MS = 7 * 24 * 60 * 60 * 1000;
+
+const plans = [
+  {
+    id: "starter",
+    name: "Mini",
+    monthlyPrice: 49,
+    yearlyPrice: 490,
+    credits: 10,
+    description: "Для людей, которым иногда нужно узнать, сколько будет 2 + 2."
+  },
+  {
+    id: "pro",
+    name: "Pro",
+    monthlyPrice: 149,
+    yearlyPrice: 1490,
+    credits: 50,
+    description: "Оптимально для тех, кто считает сдачу и делает вид, что это аналитика."
+  },
+  {
+    id: "ultra",
+    name: "Ultra",
+    monthlyPrice: 399,
+    yearlyPrice: 3990,
+    credits: 250,
+    description: "Когда калькулятор нужен чаще, чем здравый смысл."
+  }
+];
+
+const operationSymbols = {
+  add: "+",
+  subtract: "−",
+  multiply: "×",
+  divide: "÷"
 };
-// Чистая функция вычитания
-const subtract = (firstNumber, secondNumber) => {
-    return firstNumber - secondNumber;
-};
-// Чистая функция умножения
-const multiply = (firstNumber, secondNumber) => {
-    return firstNumber * secondNumber;
-};
-// Чистая функция деления
-const divide = (firstNumber, secondNumber) => {
+
+const operations = {
+  add: (firstNumber, secondNumber) => firstNumber + secondNumber,
+  subtract: (firstNumber, secondNumber) => firstNumber - secondNumber,
+  multiply: (firstNumber, secondNumber) => firstNumber * secondNumber,
+  divide: (firstNumber, secondNumber) => {
     if (secondNumber === 0) {
-        return NaN;
+      return NaN;
     }
+
     return firstNumber / secondNumber;
+  }
 };
-// Чистая функция возведения в степень
-const power = (firstNumber, secondNumber) => {
-    return firstNumber ** secondNumber;
-};
-// Чистая функция вычисления квадратного корня
-const squareRoot = (number) => {
-    if (number < 0) {
-        return NaN;
-    }
-    return Math.sqrt(number);
-};
-// Функция высшего порядка для логирования операций
-const withLogging = (operation) => {
-    return (...args) => {
-        console.log("Выполняется операция с аргументами:", args);
-        return operation(...args);
-    };
-};
-// Функция высшего порядка для создания бинарной операции
-const createBinaryOperation = (operation) => {
-    return withLogging(operation);
-};
-// Чистая функция выбора операции
-const getBinaryOperation = (operationName) => {
-    const operations = {
-        add,
-        subtract,
-        multiply,
-        divide,
-        power
-    };
-    return operations[operationName];
-};
-// Чистая функция получения символа операции
-const getOperationSymbol = (operation) => {
-    const symbols = {
-        add: "+",
-        subtract: "−",
-        multiply: "×",
-        divide: "÷",
-        power: "^",
-        sqrt: "√"
-    };
-    return symbols[operation];
-};
-// Чистая функция добавления цифры на экран
-const appendNumber = (state, number) => {
-    if (state.waitingForSecondNumber) {
-        return {
-            ...state,
-            displayValue: number,
-            waitingForSecondNumber: false
-        };
-    }
-    return {
-        ...state,
-        displayValue: state.displayValue === "0"
-            ? number
-            : state.displayValue + number
-    };
-};
-// Чистая функция добавления десятичной точки
-const appendDot = (state) => {
-    if (state.waitingForSecondNumber) {
-        return {
-            ...state,
-            displayValue: "0.",
-            waitingForSecondNumber: false
-        };
-    }
-    if (state.displayValue.includes(".")) {
-        return state;
-    }
-    return {
-        ...state,
-        displayValue: state.displayValue + "."
-    };
-};
-// Чистая функция сброса состояния
-const clearState = () => {
-    return {
-        displayValue: "0",
-        expression: "",
-        firstNumber: null,
-        operation: null,
-        waitingForSecondNumber: false
-    };
-};
-// Чистая функция выбора операции
-const chooseOperation = (state, operation) => {
-    if (operation === "sqrt") {
-        const loggedSquareRoot = withLogging(squareRoot);
-        const currentNumber = Number(state.displayValue);
-        const result = loggedSquareRoot(currentNumber);
-        return {
-            ...state,
-            displayValue: String(result),
-            expression: `√${currentNumber}`,
-            firstNumber: null,
-            operation: null,
-            waitingForSecondNumber: true
-        };
-    }
-    return {
-        ...state,
-        firstNumber: Number(state.displayValue),
-        operation,
-        expression: `${state.displayValue} ${getOperationSymbol(operation)}`,
-        waitingForSecondNumber: true
-    };
-};
-// Чистая функция вычисления результата
-const calculateResult = (state) => {
-    if (state.firstNumber === null || state.operation === null) {
-        return state;
-    }
-    const secondNumber = Number(state.displayValue);
-    const operation = createBinaryOperation(getBinaryOperation(state.operation));
-    const result = operation(state.firstNumber, secondNumber);
-    return {
-        displayValue: String(result),
-        expression: `${state.firstNumber} ${getOperationSymbol(state.operation)} ${secondNumber} =`,
-        firstNumber: null,
-        operation: null,
-        waitingForSecondNumber: true
-    };
-};
-// Чистая функция выбора эффекта по результату
-const getMemeEffect = (result) => {
-    if (result === 69) {
-        return {
-            result,
-            type: "sideGif",
-            gifUrl: NICE_GIF_URL
-        };
-    }
-    if (result === 67) {
-        return {
-            result,
-            type: "sideGif",
-            gifUrl: SIX_SEVEN_GIF_URL
-        };
-    }
-    if (result === 404) {
-        return {
-            result,
-            type: "prank404"
-        };
-    }
-    if (result === 666) {
-        return {
-            result,
-            type: "cursed"
-        };
-    }
-    if (result === 777) {
-        return {
-            result,
-            type: "slot777"
-        };
-    }
-    return {
-        result,
-        type: "none"
-    };
-};
-// Чистая функция генерации cursed-строки
-const createCursedText = (length) => {
-    const symbols = [
-        "☠",
-        "✦",
-        "✧",
-        "✺",
-        "✹",
-        "⛧",
-        "⌬",
-        "░",
-        "▒",
-        "▓",
-        "█",
-        "҉",
-        "Ж",
-        "Х",
-        "Ф",
-        "Ы",
-        "λ",
-        "ψ",
-        "Ω",
-        "?"
-    ];
-    return Array.from({ length }, () => {
-        const index = Math.floor(Math.random() * symbols.length);
-        return symbols[index];
-    }).join("");
-};
+
 const display = document.querySelector("#display");
 const expressionDisplay = document.querySelector("#expressionDisplay");
-const displayContainer = document.querySelector("#displayContainer");
-const sideMeme = document.querySelector("#sideMeme");
-const prankScreen = document.querySelector("#prankScreen");
-const fireworksLayer = document.querySelector("#fireworksLayer");
-const buttons = document.querySelectorAll("button");
-let calculatorState = clearState();
-let cursedIntervalId = null;
-let slotIntervalId = null;
-let prankTimeoutId = null;
-let slotTimeoutIds = [];
-const stopCursedEffect = () => {
-    if (cursedIntervalId !== null) {
-        window.clearInterval(cursedIntervalId);
-        cursedIntervalId = null;
-    }
-    displayContainer.classList.remove("cursed-display");
-};
-const stopSlotEffect = () => {
-    if (slotIntervalId !== null) {
-        window.clearInterval(slotIntervalId);
-        slotIntervalId = null;
-    }
-    slotTimeoutIds.forEach((timeoutId) => {
-        window.clearTimeout(timeoutId);
+const displayPanel = display.parentElement;
+const smokeVideo = document.querySelector("#smokeVideo");
+const buttons = document.querySelectorAll(".buttons button");
+const powerButton = document.querySelector("[data-action='power']");
+const creditsValue = document.querySelector("#creditsValue");
+const planName = document.querySelector("#planName");
+const planDescription = document.querySelector("#planDescription");
+const paymentLabel = document.querySelector("#paymentLabel");
+const subscriptionModal = document.querySelector("#subscriptionModal");
+const closeModalButton = document.querySelector("#closeModal");
+const billingButtons = document.querySelectorAll("[data-billing]");
+const plansGrid = document.querySelector("#plansGrid");
+const plansStep = document.querySelector("#plansStep");
+const paymentForm = document.querySelector("#paymentForm");
+const backToPlansButton = document.querySelector("#backToPlans");
+const selectedPlanSummary = document.querySelector("#selectedPlanSummary");
+const cardName = document.querySelector("#cardName");
+const cardNumber = document.querySelector("#cardNumber");
+const cardExpiry = document.querySelector("#cardExpiry");
+const cardCvc = document.querySelector("#cardCvc");
+const toast = document.querySelector("#toast");
+
+let calculatorState = createInitialCalculatorState();
+let subscriptionState = loadSubscription();
+let selectedBilling = "monthly";
+let selectedPlanId = plans[1].id;
+let pendingCalculation = false;
+let toastTimeoutId = null;
+let memoryValue = 0;
+let isPoweredOn = false;
+let powerHoldTimeoutId = null;
+let isMeltdownActive = false;
+let meltdownTimeoutId = null;
+let smokeFadeStartTimeoutId = null;
+let smokeFadeTimeoutId = null;
+let smokeFadeStartFrameId = null;
+let smokeFadeEndFrameId = null;
+
+const POWER_HOLD_DURATION = 900;
+const MELTDOWN_DURATION = 9000;
+const SMOKE_FADE_DURATION = 1200;
+const MAX_DISPLAY_FONT_SIZE = 42;
+const TABLET_DISPLAY_FONT_SIZE = 38;
+const MOBILE_DISPLAY_FONT_SIZE = 30;
+const MIN_DISPLAY_FONT_SIZE = 7;
+const DISPLAY_WIDTH_RESERVE = 4;
+const displayMeasureContext = document.createElement("canvas").getContext("2d");
+
+function createInitialCalculatorState() {
+  return {
+    displayValue: "0",
+    expression: "",
+    firstNumber: null,
+    operation: null,
+    waitingForSecondNumber: false
+  };
+}
+
+function loadSubscription() {
+  localStorage.removeItem(STORAGE_KEY);
+  return null;
+}
+
+function saveSubscription(state) {
+  subscriptionState = state;
+
+  if (state === null) {
+    localStorage.removeItem(STORAGE_KEY);
+    return;
+  }
+
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function formatMoney(value) {
+  return `${value} ₽`;
+}
+
+function getPlan(planId) {
+  return plans.find((plan) => plan.id === planId) || plans[0];
+}
+
+function getPlanPrice(plan, billing) {
+  return billing === "monthly" ? plan.monthlyPrice : plan.yearlyPrice;
+}
+
+function getBillingLabel(billing) {
+  return billing === "monthly" ? "месяц" : "год";
+}
+
+function getNextRefillAt(fromTime) {
+  return fromTime + WEEK_IN_MS;
+}
+
+function formatRefillDate(value) {
+  return new Intl.DateTimeFormat("ru-RU", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric"
+  }).format(new Date(value));
+}
+
+function applyWeeklyCreditRefill() {
+  if (subscriptionState === null) {
+    return;
+  }
+
+  const now = Date.now();
+
+  if (now < subscriptionState.nextRefillAt) {
+    return;
+  }
+
+  const plan = getPlan(subscriptionState.planId);
+  const missedRefills = Math.floor((now - subscriptionState.nextRefillAt) / WEEK_IN_MS) + 1;
+
+  saveSubscription({
+    ...subscriptionState,
+    credits: plan.credits,
+    nextRefillAt: subscriptionState.nextRefillAt + missedRefills * WEEK_IN_MS
+  });
+}
+
+function formatDisplayValue(value) {
+  if (!Number.isFinite(value)) {
+    return "Ошибка";
+  }
+
+  const roundedValue = Number.parseFloat(value.toFixed(10));
+  return String(roundedValue);
+}
+
+function appendNumber(state, number) {
+  if (state.waitingForSecondNumber) {
+    return {
+      ...state,
+      displayValue: number,
+      waitingForSecondNumber: false
+    };
+  }
+
+  return {
+    ...state,
+    displayValue: state.displayValue === "0" ? number : state.displayValue + number
+  };
+}
+
+function appendDot(state) {
+  if (state.waitingForSecondNumber) {
+    return {
+      ...state,
+      displayValue: "0.",
+      waitingForSecondNumber: false
+    };
+  }
+
+  if (state.displayValue.includes(".")) {
+    return state;
+  }
+
+  return {
+    ...state,
+    displayValue: `${state.displayValue}.`
+  };
+}
+
+function toggleSign(state) {
+  if (state.displayValue === "0") {
+    return state;
+  }
+
+  return {
+    ...state,
+    displayValue: state.displayValue.startsWith("-")
+      ? state.displayValue.slice(1)
+      : `-${state.displayValue}`
+  };
+}
+
+function percent(state) {
+  return {
+    ...state,
+    displayValue: formatDisplayValue(Number(state.displayValue) / 100)
+  };
+}
+
+function getDisplayNumber() {
+  const currentNumber = Number(calculatorState.displayValue);
+  return Number.isFinite(currentNumber) ? currentNumber : 0;
+}
+
+function memoryRecall() {
+  calculatorState = {
+    ...calculatorState,
+    displayValue: formatDisplayValue(memoryValue),
+    waitingForSecondNumber: false
+  };
+  renderCalculator();
+}
+
+function memoryAdd() {
+  memoryValue += getDisplayNumber();
+  showToast("m+ saved. Even memory is monetizable eventually.");
+}
+
+function memorySubtract() {
+  memoryValue -= getDisplayNumber();
+  showToast("m- saved. The calculator remembers your losses.");
+}
+
+function chooseOperation(state, operation) {
+  return {
+    ...state,
+    firstNumber: Number(state.displayValue),
+    operation,
+    expression: `${state.displayValue} ${operationSymbols[operation]}`,
+    waitingForSecondNumber: true
+  };
+}
+
+function calculateResult(state) {
+  if (state.firstNumber === null || state.operation === null) {
+    return state;
+  }
+
+  const secondNumber = Number(state.displayValue);
+  const result = operations[state.operation](state.firstNumber, secondNumber);
+
+  return {
+    displayValue: formatDisplayValue(result),
+    expression: `${state.firstNumber} ${operationSymbols[state.operation]} ${secondNumber} =`,
+    firstNumber: null,
+    operation: null,
+    waitingForSecondNumber: true
+  };
+}
+
+function canSpendCredit() {
+  applyWeeklyCreditRefill();
+  return subscriptionState !== null && subscriptionState.credits >= CREDIT_COST;
+}
+
+function spendCredit() {
+  applyWeeklyCreditRefill();
+
+  if (subscriptionState === null) {
+    return;
+  }
+
+  saveSubscription({
+    ...subscriptionState,
+    credits: subscriptionState.credits - CREDIT_COST
+  });
+}
+
+function runPaidCalculation() {
+  if (isMeltdownActive) {
+    return;
+  }
+
+  if (calculatorState.firstNumber === null || calculatorState.operation === null) {
+    showToast("Сначала соберите пример. Даже премиум не считает пустоту.");
+    return;
+  }
+
+  if (isDivisionByZero(calculatorState)) {
+    triggerDivisionByZeroMeltdown();
+    return;
+  }
+
+  if (!canSpendCredit()) {
+    pendingCalculation = true;
+    openSubscriptionModal();
+    return;
+  }
+
+  calculatorState = calculateResult(calculatorState);
+  spendCredit();
+  renderCalculator();
+  renderSubscription();
+}
+
+function renderCalculator() {
+  displayPanel?.classList.toggle("is-error", isMeltdownActive);
+
+  if (!isPoweredOn) {
+    displayPanel?.classList.add("is-off");
+    expressionDisplay.textContent = "";
+    display.textContent = "";
+    display.style.fontSize = "";
+    display.style.transform = "";
+    return;
+  }
+
+  displayPanel?.classList.remove("is-off");
+  expressionDisplay.textContent = calculatorState.expression;
+  display.textContent = calculatorState.displayValue;
+  fitDisplayValue();
+}
+
+function togglePower() {
+  if (isMeltdownActive) {
+    return;
+  }
+
+  isPoweredOn = !isPoweredOn;
+  calculatorState = createInitialCalculatorState();
+  pendingCalculation = false;
+  closeSubscriptionModal();
+  renderCalculator();
+}
+
+function startPowerHold(event) {
+  if (isMeltdownActive) {
+    return;
+  }
+
+  if (event.button !== undefined && event.button !== 0) {
+    return;
+  }
+
+  event.preventDefault();
+
+  if (powerHoldTimeoutId !== null) {
+    return;
+  }
+
+  powerButton.classList.add("is-holding");
+
+  powerHoldTimeoutId = window.setTimeout(() => {
+    powerHoldTimeoutId = null;
+    powerButton.classList.remove("is-holding");
+    togglePower();
+  }, POWER_HOLD_DURATION);
+}
+
+function cancelPowerHold() {
+  if (powerHoldTimeoutId !== null) {
+    window.clearTimeout(powerHoldTimeoutId);
+    powerHoldTimeoutId = null;
+  }
+
+  powerButton.classList.remove("is-holding");
+}
+
+function getMaxDisplayFontSize() {
+  if (window.matchMedia("(max-width: 480px)").matches) {
+    return MOBILE_DISPLAY_FONT_SIZE;
+  }
+
+  if (window.matchMedia("(max-width: 820px)").matches) {
+    return TABLET_DISPLAY_FONT_SIZE;
+  }
+
+  return MAX_DISPLAY_FONT_SIZE;
+}
+
+function fitDisplayValue() {
+  const maxFontSize = getMaxDisplayFontSize();
+  const availableWidth = getDisplayAvailableWidth();
+  const text = display.textContent || "0";
+
+  display.style.fontSize = `${maxFontSize}px`;
+  display.style.transform = "";
+
+  if (availableWidth <= 0) {
+    return;
+  }
+
+  const maxTextWidth = measureDisplayText(text, maxFontSize);
+
+  if (maxTextWidth <= availableWidth) {
+    return;
+  }
+
+  const fittedFontSize = Math.max(
+    MIN_DISPLAY_FONT_SIZE,
+    Math.floor((maxFontSize * availableWidth) / maxTextWidth)
+  );
+
+  display.style.fontSize = `${fittedFontSize}px`;
+
+  const fittedTextWidth = measureDisplayText(text, fittedFontSize);
+
+  if (fittedTextWidth > availableWidth) {
+    const scale = Math.max(0.2, availableWidth / fittedTextWidth);
+    display.style.transform = `scaleX(${scale})`;
+  }
+}
+
+function getDisplayAvailableWidth() {
+  const displayParent = display.parentElement;
+
+  if (displayParent === null) {
+    return Math.max(0, display.clientWidth - DISPLAY_WIDTH_RESERVE);
+  }
+
+  const parentStyles = window.getComputedStyle(displayParent);
+  const horizontalPadding =
+    Number.parseFloat(parentStyles.paddingLeft) +
+    Number.parseFloat(parentStyles.paddingRight);
+
+  return Math.max(0, displayParent.clientWidth - horizontalPadding - DISPLAY_WIDTH_RESERVE);
+}
+
+function measureDisplayText(text, fontSize) {
+  if (displayMeasureContext === null) {
+    return text.length * fontSize * 0.58;
+  }
+
+  const displayStyles = window.getComputedStyle(display);
+  displayMeasureContext.font = `${displayStyles.fontWeight} ${fontSize}px ${displayStyles.fontFamily}`;
+
+  return displayMeasureContext.measureText(text).width;
+}
+
+function isDivisionByZero(state) {
+  return state.operation === "divide" && Number(state.displayValue) === 0;
+}
+
+function triggerDivisionByZeroMeltdown() {
+  isMeltdownActive = true;
+  isPoweredOn = true;
+  pendingCalculation = false;
+  closeSubscriptionModal();
+  drainCredits();
+
+  calculatorState = {
+    displayValue: "ERROR",
+    expression: "DIVISION BY ZERO",
+    firstNumber: null,
+    operation: null,
+    waitingForSecondNumber: true
+  };
+
+  renderSubscription();
+  renderCalculator();
+  playSmoke();
+
+  if (meltdownTimeoutId !== null) {
+    window.clearTimeout(meltdownTimeoutId);
+  }
+
+  const smokeFadeStartDelay = Math.max(0, MELTDOWN_DURATION - SMOKE_FADE_DURATION);
+  smokeFadeStartTimeoutId = window.setTimeout(() => {
+    smokeFadeStartTimeoutId = null;
+    fadeOutSmoke();
+  }, smokeFadeStartDelay);
+
+  meltdownTimeoutId = window.setTimeout(() => {
+    meltdownTimeoutId = null;
+    finishDivisionByZeroMeltdown();
+  }, MELTDOWN_DURATION);
+}
+
+function finishDivisionByZeroMeltdown() {
+  isMeltdownActive = false;
+  isPoweredOn = false;
+  calculatorState = createInitialCalculatorState();
+  renderCalculator();
+
+  if (smokeVideo === null || !smokeVideo.classList.contains("is-fading-out")) {
+    fadeOutSmoke();
+  }
+}
+
+function drainCredits() {
+  if (subscriptionState === null) {
+    return;
+  }
+
+  saveSubscription({
+    ...subscriptionState,
+    credits: 0
+  });
+}
+
+function playSmoke() {
+  if (smokeVideo === null) {
+    return;
+  }
+
+  cancelSmokeFade();
+  smokeVideo.classList.remove("is-fading-out");
+  smokeVideo.style.opacity = "";
+  smokeVideo.style.transition = "";
+  smokeVideo.classList.add("is-active");
+  smokeVideo.currentTime = 0;
+
+  const playPromise = smokeVideo.play();
+
+  if (playPromise !== undefined) {
+    playPromise.catch(() => {});
+  }
+}
+
+function fadeOutSmoke() {
+  if (smokeVideo === null) {
+    return;
+  }
+
+  cancelSmokeFade();
+  smokeVideo.classList.remove("is-fading-out");
+  smokeVideo.classList.add("is-active");
+  smokeVideo.style.transition = "none";
+  smokeVideo.style.opacity = "0.72";
+  void smokeVideo.offsetWidth;
+
+  smokeFadeStartFrameId = window.requestAnimationFrame(() => {
+    smokeFadeStartFrameId = null;
+    smokeFadeEndFrameId = window.requestAnimationFrame(() => {
+      smokeFadeEndFrameId = null;
+      smokeVideo.classList.remove("is-active");
+      smokeVideo.classList.add("is-fading-out");
+      smokeVideo.style.transition = `opacity ${SMOKE_FADE_DURATION}ms ease`;
+      smokeVideo.style.opacity = "0";
     });
-    slotTimeoutIds = [];
-    display.classList.remove("slot-animation");
-};
-const hideAllEffects = () => {
-    sideMeme.classList.add("hidden");
-    fireworksLayer.classList.add("hidden");
-    prankScreen.classList.add("hidden");
-    stopCursedEffect();
-    stopSlotEffect();
-    if (prankTimeoutId !== null) {
-        window.clearTimeout(prankTimeoutId);
-        prankTimeoutId = null;
-    }
-};
-const showSideGif = (gifUrl) => {
-    sideMeme.src = gifUrl;
-    sideMeme.classList.remove("hidden");
-};
-const showPrank404 = () => {
-    prankScreen.classList.remove("hidden");
-    prankTimeoutId = window.setTimeout(() => {
-        prankScreen.classList.add("hidden");
-        prankTimeoutId = null;
-    }, 4000);
-};
-const showCursedEffect = () => {
-    displayContainer.classList.add("cursed-display");
-    cursedIntervalId = window.setInterval(() => {
-        expressionDisplay.textContent = createCursedText(18);
-        display.textContent = createCursedText(10);
-    }, 90);
-};
-const showSlot777 = () => {
-    let firstDigit = "?";
-    let secondDigit = "?";
-    let thirdDigit = "?";
-    let activeReel = 0;
-    display.classList.add("slot-animation");
-    fireworksLayer.classList.add("hidden");
-    display.textContent = "???";
-    slotIntervalId = window.setInterval(() => {
-        if (activeReel === 0) {
-            firstDigit = String(Math.floor(Math.random() * 10));
-        }
-        if (activeReel === 1) {
-            secondDigit = String(Math.floor(Math.random() * 10));
-        }
-        if (activeReel === 2) {
-            thirdDigit = String(Math.floor(Math.random() * 10));
-        }
-        display.textContent = `${firstDigit}${secondDigit}${thirdDigit}`;
-    }, 70);
-    const stopFirstReel = window.setTimeout(() => {
-        firstDigit = "7";
-        activeReel = 1;
-        display.textContent = `${firstDigit}${secondDigit}${thirdDigit}`;
-    }, 900);
-    const stopSecondReel = window.setTimeout(() => {
-        secondDigit = "7";
-        activeReel = 2;
-        display.textContent = `${firstDigit}${secondDigit}${thirdDigit}`;
-    }, 1700);
-    const stopThirdReel = window.setTimeout(() => {
-        thirdDigit = "7";
-        display.textContent = `${firstDigit}${secondDigit}${thirdDigit}`;
-        stopSlotEffect();
-        display.textContent = "777";
-        fireworksLayer.classList.remove("hidden");
-    }, 2500);
-    slotTimeoutIds = [stopFirstReel, stopSecondReel, stopThirdReel];
-};
-const applyEffect = (effect) => {
-    if (effect.type === "sideGif" && effect.gifUrl !== undefined) {
-        showSideGif(effect.gifUrl);
-        return;
-    }
-    if (effect.type === "prank404") {
-        showPrank404();
-        return;
-    }
-    if (effect.type === "cursed") {
-        showCursedEffect();
-        return;
-    }
-    if (effect.type === "slot777") {
-        showSlot777();
-        return;
-    }
-};
-const render = (state, shouldApplyEffect = true) => {
-    hideAllEffects();
-    expressionDisplay.textContent = state.expression;
-    if (state.displayValue === "NaN") {
-        display.textContent = "Ошибка";
-        return;
-    }
-    display.textContent = state.displayValue;
-    if (!shouldApplyEffect) {
-        return;
-    }
-    const result = Number(state.displayValue);
-    const effect = getMemeEffect(result);
-    applyEffect(effect);
-};
+  });
+
+  smokeFadeTimeoutId = window.setTimeout(finishSmokeFade, SMOKE_FADE_DURATION + 220);
+}
+
+function finishSmokeFade() {
+  if (smokeVideo === null) {
+    return;
+  }
+
+  cancelSmokeFade();
+  smokeVideo.pause();
+  smokeVideo.currentTime = 0;
+  smokeVideo.style.opacity = "";
+  smokeVideo.style.transition = "";
+  smokeVideo.classList.remove("is-active");
+  smokeVideo.classList.remove("is-fading-out");
+}
+
+function cancelSmokeFade() {
+  if (smokeFadeStartTimeoutId !== null) {
+    window.clearTimeout(smokeFadeStartTimeoutId);
+    smokeFadeStartTimeoutId = null;
+  }
+
+  if (smokeFadeTimeoutId !== null) {
+    window.clearTimeout(smokeFadeTimeoutId);
+    smokeFadeTimeoutId = null;
+  }
+
+  if (smokeFadeStartFrameId !== null) {
+    window.cancelAnimationFrame(smokeFadeStartFrameId);
+    smokeFadeStartFrameId = null;
+  }
+
+  if (smokeFadeEndFrameId !== null) {
+    window.cancelAnimationFrame(smokeFadeEndFrameId);
+    smokeFadeEndFrameId = null;
+  }
+}
+
+function renderSubscription() {
+  applyWeeklyCreditRefill();
+
+  const credits = subscriptionState === null ? 0 : subscriptionState.credits;
+  creditsValue.textContent = String(credits);
+
+  if (subscriptionState === null) {
+    planName.textContent = "Бесплатный тариф";
+    planDescription.textContent = "Базовый режим без активной подписки. Можно открыть калькулятор, вводить числа и тестировать интерфейс.";
+    paymentLabel.textContent = "Не подключена";
+    return;
+  }
+
+  const plan = getPlan(subscriptionState.planId);
+  const refillText = subscriptionState.credits <= 0
+    ? ` Кредиты закончились. Следующее пополнение: ${formatRefillDate(subscriptionState.nextRefillAt)}.`
+    : "";
+
+  planName.textContent = `Calculator+ ${plan.name}`;
+  planDescription.textContent =
+    `${plan.credits} кредитов в пакете. Осталось ${subscriptionState.credits}.${refillText}`;
+  paymentLabel.textContent = `•••• ${subscriptionState.cardLast4}`;
+}
+
+function renderPlans() {
+  plansGrid.innerHTML = "";
+
+  plans.forEach((plan) => {
+    const price = getPlanPrice(plan, selectedBilling);
+    const planButton = document.createElement("button");
+    planButton.className = "plan-card";
+    planButton.type = "button";
+    planButton.dataset.planId = plan.id;
+    planButton.innerHTML = `
+      <h3>${plan.name}</h3>
+      <div class="price">${formatMoney(price)}<span> / ${getBillingLabel(selectedBilling)}</span></div>
+      <div class="credits">${plan.credits} кредитов</div>
+      <div class="refill">Пополнение каждую неделю</div>
+      <p>${plan.description}</p>
+      <span class="choose-plan">Выбрать</span>
+    `;
+
+    planButton.addEventListener("click", () => {
+      selectedPlanId = plan.id;
+      openPaymentStep();
+    });
+
+    plansGrid.append(planButton);
+  });
+}
+
+function renderBillingToggle() {
+  billingButtons.forEach((button) => {
+    button.classList.toggle("active", button.dataset.billing === selectedBilling);
+  });
+}
+
+function openSubscriptionModal() {
+  plansStep.classList.remove("hidden");
+  paymentForm.classList.add("hidden");
+  subscriptionModal.classList.remove("hidden");
+  subscriptionModal.setAttribute("aria-hidden", "false");
+  renderPlans();
+  renderBillingToggle();
+}
+
+function closeSubscriptionModal() {
+  subscriptionModal.classList.add("hidden");
+  subscriptionModal.setAttribute("aria-hidden", "true");
+}
+
+function openPaymentStep() {
+  const plan = getPlan(selectedPlanId);
+  const price = getPlanPrice(plan, selectedBilling);
+
+  selectedPlanSummary.textContent =
+    `Calculator+ ${plan.name}: ${formatMoney(price)} за ${getBillingLabel(selectedBilling)}, ${plan.credits} кредитов. Пополнение каждую неделю с даты покупки.`;
+
+  plansStep.classList.add("hidden");
+  paymentForm.classList.remove("hidden");
+  cardName.focus();
+}
+
+function completePayment() {
+  const plan = getPlan(selectedPlanId);
+  const digits = cardNumber.value.replace(/\D/g, "");
+  const cardLast4 = digits.slice(-4).padStart(4, "0");
+  const purchasedAt = Date.now();
+
+  saveSubscription({
+    planId: plan.id,
+    billing: selectedBilling,
+    credits: plan.credits,
+    cardLast4,
+    purchasedAt,
+    nextRefillAt: getNextRefillAt(purchasedAt)
+  });
+
+  paymentForm.reset();
+  closeSubscriptionModal();
+  renderSubscription();
+
+  if (pendingCalculation) {
+    pendingCalculation = false;
+    showToast("Подписка активирована. Один кредит героически отправился за ответом.");
+    runPaidCalculation();
+    return;
+  }
+
+  showToast("Подписка активирована. Кнопка '=' теперь смотрит на вас уважительно.");
+}
+
+function showToast(message) {
+  toast.textContent = message;
+  toast.classList.remove("hidden");
+
+  if (toastTimeoutId !== null) {
+    window.clearTimeout(toastTimeoutId);
+  }
+
+  toastTimeoutId = window.setTimeout(() => {
+    toast.classList.add("hidden");
+    toastTimeoutId = null;
+  }, 3200);
+}
+
 buttons.forEach((button) => {
-    button.addEventListener("click", () => {
-        const number = button.dataset.number;
-        const action = button.dataset.action;
-        const operation = button.dataset.operation;
-        if (action === "clear") {
-            calculatorState = clearState();
-            render(calculatorState, false);
-            return;
-        }
-        if (number !== undefined) {
-            calculatorState = appendNumber(calculatorState, number);
-            render(calculatorState, false);
-            return;
-        }
-        if (action === "dot") {
-            calculatorState = appendDot(calculatorState);
-            render(calculatorState, false);
-            return;
-        }
-        if (operation !== undefined) {
-            calculatorState = chooseOperation(calculatorState, operation);
-            render(calculatorState, false);
-            return;
-        }
-        if (action === "calculate") {
-            calculatorState = calculateResult(calculatorState);
-            render(calculatorState, true);
-            return;
-        }
-    });
+  button.addEventListener("click", () => {
+    const number = button.dataset.number;
+    const action = button.dataset.action;
+    const operation = button.dataset.operation;
+
+    if (action === "power") {
+      return;
+    }
+
+    if (!isPoweredOn || isMeltdownActive) {
+      return;
+    }
+
+    if (number !== undefined) {
+      calculatorState = appendNumber(calculatorState, number);
+      renderCalculator();
+      return;
+    }
+
+    if (action === "clear") {
+      calculatorState = createInitialCalculatorState();
+      renderCalculator();
+      return;
+    }
+
+    if (action === "dot") {
+      calculatorState = appendDot(calculatorState);
+      renderCalculator();
+      return;
+    }
+
+    if (action === "toggle-sign") {
+      calculatorState = toggleSign(calculatorState);
+      renderCalculator();
+      return;
+    }
+
+    if (action === "percent") {
+      calculatorState = percent(calculatorState);
+      renderCalculator();
+      return;
+    }
+
+    if (action === "memory-recall") {
+      memoryRecall();
+      return;
+    }
+
+    if (action === "memory-plus") {
+      memoryAdd();
+      return;
+    }
+
+    if (action === "memory-minus") {
+      memorySubtract();
+      return;
+    }
+
+    if (operation !== undefined) {
+      calculatorState = chooseOperation(calculatorState, operation);
+      renderCalculator();
+      return;
+    }
+
+    if (action === "calculate") {
+      runPaidCalculation();
+    }
+  });
 });
-render(calculatorState, false);
-export {};
+
+powerButton.addEventListener("pointerdown", startPowerHold);
+powerButton.addEventListener("pointerup", cancelPowerHold);
+powerButton.addEventListener("pointerleave", cancelPowerHold);
+powerButton.addEventListener("pointercancel", cancelPowerHold);
+
+billingButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    selectedBilling = button.dataset.billing;
+    renderBillingToggle();
+    renderPlans();
+  });
+});
+
+closeModalButton.addEventListener("click", () => {
+  pendingCalculation = false;
+  closeSubscriptionModal();
+});
+
+backToPlansButton.addEventListener("click", () => {
+  paymentForm.classList.add("hidden");
+  plansStep.classList.remove("hidden");
+});
+
+paymentForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+
+  const digits = cardNumber.value.replace(/\D/g, "");
+  const expiryIsValid = /^\d{2}\/\d{2}$/.test(cardExpiry.value.trim());
+  const cvcIsValid = /^\d{3}$/.test(cardCvc.value.trim());
+
+  if (digits.length < 12 || !expiryIsValid || !cvcIsValid) {
+    showToast("Демо-банк отклонил форму. Проверьте номер, срок и CVC.");
+    return;
+  }
+
+  completePayment();
+});
+
+cardNumber.addEventListener("input", () => {
+  const digits = cardNumber.value.replace(/\D/g, "").slice(0, 16);
+  cardNumber.value = digits.replace(/(\d{4})(?=\d)/g, "$1 ");
+});
+
+cardExpiry.addEventListener("input", () => {
+  const digits = cardExpiry.value.replace(/\D/g, "").slice(0, 4);
+  cardExpiry.value = digits.length > 2 ? `${digits.slice(0, 2)}/${digits.slice(2)}` : digits;
+});
+
+cardCvc.addEventListener("input", () => {
+  cardCvc.value = cardCvc.value.replace(/\D/g, "").slice(0, 3);
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape" && !subscriptionModal.classList.contains("hidden")) {
+    pendingCalculation = false;
+    closeSubscriptionModal();
+  }
+});
+
+window.addEventListener("resize", fitDisplayValue);
+
+renderCalculator();
+renderSubscription();
